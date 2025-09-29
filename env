@@ -1,0 +1,16 @@
+# PostgreSQL
+POSTGRES_DB=bankcards_db
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+
+# Spring Boot Datasource
+SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/bankcards_db
+SPRING_DATASOURCE_USERNAME=postgres
+SPRING_DATASOURCE_PASSWORD=postgres
+
+# Application port
+SERVER_PORT=8080
+
+# JWT
+JWT_SECRET=85cd200f70bc9802fea817ff6ccd46722bfa3201f32560430154c6cafa940de2
+JWT_EXPIRATION=3600000
