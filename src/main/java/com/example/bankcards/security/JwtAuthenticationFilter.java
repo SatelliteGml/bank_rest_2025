@@ -30,20 +30,25 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String username = null;
         String jwt = null;
 
+        // Проверяем наличие заголовка Authorization и префикса "Bearer "
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            jwt = authHeader.substring(7);
-            username = jwtService.extractUsername(jwt);
+            jwt = authHeader.substring(7); // убираем "Bearer "
+            username = jwtService.getUsernameFromToken(jwt); // извлекаем username
         }
 
+        // Если username есть и в контексте ещё нет аутентификации
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             var userDetails = userDetailsService.loadUserByUsername(username);
-            if (jwtService.isTokenValid(jwt, (UserDetailsImpl) userDetails)) {
+
+            // Проверяем валидность токена
+            if (jwtService.validateToken(jwt)) {
                 var authToken = new UsernamePasswordAuthenticationToken(
                         userDetails, null, userDetails.getAuthorities());
                 SecurityContextHolder.getContext().setAuthentication(authToken);
             }
         }
 
+        // Продолжаем цепочку фильтров
         filterChain.doFilter(request, response);
     }
 }

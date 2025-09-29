@@ -36,7 +36,7 @@ spring:
     enabled: true
 
 jwt:
-  secret: ${JWT_SECRET:defaultsecret}
+  secret: ${JWT_SECRET:85cd200f70bc9802fea817ff6ccd46722bfa3201f32560430154c6cafa940de2}
   expiration: ${JWT_EXPIRATION:3600000}
 
 springdoc:
