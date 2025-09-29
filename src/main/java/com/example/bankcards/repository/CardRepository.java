@@ -16,13 +16,16 @@ public interface CardRepository extends JpaRepository<Card, Long> {
 
     List<Card> findByUserIdAndStatus(Long userId, Status status);
 
-    Optional<Card> findByCardNumber(String cardNumber);
+    Optional<Card> findByEncryptedCardNumber(String number);
 
     Page<Card> findByUserId(Long userId, Pageable pageable);
 
-    Page<Card> findByUserIdAndCardNumberContaining(Long userId, String search, Pageable pageable);
+    Page<Card> findByUserIdAndEncryptedCardNumberContaining(Long userId, String search, Pageable pageable);
 
     Optional<Card> findByIdAndUserId(Long id, Long userId);
 
     List<Card> findByUserIdAndIdIn(Long userId, List<Long> cardIds);
+
+    boolean existsByEncryptedCardNumber(String number);
 }
+

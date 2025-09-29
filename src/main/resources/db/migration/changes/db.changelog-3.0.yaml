@@ -1,0 +1,13 @@
+databaseChangeLog:
+  - changeSet:
+      id: 6
+      author: admin
+      changes:
+        - addColumn:
+            tableName: cards
+            columns:
+              - column:
+                  name: cvv
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false

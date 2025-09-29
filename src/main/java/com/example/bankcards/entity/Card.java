@@ -22,7 +22,7 @@ public class Card {
     @EqualsAndHashCode.Include
     private Long id;
 
-    @Column(nullable = false, unique = true)
+    @Column(name = "number", nullable = false, unique = true)
     private String encryptedCardNumber;
 
     @Column(nullable = false)
@@ -37,6 +37,12 @@ public class Card {
 
     @Column(nullable = false, precision = 19, scale = 2)
     private BigDecimal balance = BigDecimal.ZERO;
+
+    @Column(name = "cvv", length = 255, nullable = false)
+    private String cvv;
+
+    @Column(nullable = false)
+    private Boolean isBlocked = false;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
