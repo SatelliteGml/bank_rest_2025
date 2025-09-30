@@ -187,7 +187,8 @@ public class CardServiceImpl implements CardService {
     }
 
     private boolean isCardNotExpired(Card card) {
-        return !card.getExpirationDate().isAfter(LocalDate.now()) &&
-                !card.getExpirationDate().isEqual(LocalDate.now());
+        LocalDate today = LocalDate.now();
+        return card.getExpirationDate().isAfter(today) ||
+                card.getExpirationDate().isEqual(today);
     }
 }

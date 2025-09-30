@@ -52,14 +52,11 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public RegisterResponse register(RegisterRequest request) {
-        if (userRepository.findByUsername(request.getUsername()).isPresent()) {
-            throw new UserExistException("User with username " + request.getUsername() + " already exists");
-        }
+        validateUserDoesNotExist(request.getUsername(), request.getEmail());
 
         User user = new User();
         user.setUsername(request.getUsername());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setUsername(request.getUsername());
         user.setEmail(request.getEmail());
         user.setRole(Role.USER);
         user.setActive(true);
@@ -67,5 +64,15 @@ public class AuthServiceImpl implements AuthService {
         userRepository.save(user);
 
         return new RegisterResponse("Registration was successful");
+    }
+
+    private void validateUserDoesNotExist(String username, String email) {
+        if (userRepository.findByUsername(username).isPresent()) {
+            throw new UserExistException("User with username " + username + " already exists");
+        }
+
+        if (userRepository.findByEmail(email).isPresent()) {
+            throw new UserExistException("User with email " + email + " already exists");
+        }
     }
 }
