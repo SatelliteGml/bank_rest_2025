@@ -10,13 +10,13 @@ import com.example.bankcards.exception.AuthenticationException;
 import com.example.bankcards.exception.UserExistException;
 import com.example.bankcards.repository.UserRepository;
 import com.example.bankcards.security.JwtService;
-import com.example.bankcards.security.UserDetailsImpl;
 import com.example.bankcards.service.AuthService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -37,8 +37,8 @@ public class AuthServiceImpl implements AuthService {
 
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
-            UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
-            String jwt = jwtService.generateToken(userDetails.getUsername());
+            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+            String jwt = jwtService.generateToken(userDetails);
 
             User user = userRepository.findByUsername(request.getUsername())
                     .orElseThrow(() -> new AuthenticationException("User not found after authentication"));
@@ -48,6 +48,7 @@ public class AuthServiceImpl implements AuthService {
             throw new AuthenticationException("Authentication failed: " + e.getMessage());
         }
     }
+
 
     @Override
     public RegisterResponse register(RegisterRequest request) {

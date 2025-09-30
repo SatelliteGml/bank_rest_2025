@@ -21,6 +21,8 @@ public interface CardService {
 
     CardDto getCardByIdAndUserId(Long cardId, Long userId);
 
+    Page<CardDto> getAllCards(Pageable pageable);
+
     List<CardDto> getUserCards(Long userId);
 
     Page<CardDto> getUserCardsPaginated(Long userId, Pageable pageable, String search);

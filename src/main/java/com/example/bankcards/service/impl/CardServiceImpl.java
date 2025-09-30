@@ -153,6 +153,13 @@ public class CardServiceImpl implements CardService {
         cardRepository.save(card);
     }
 
+    @Override
+    public Page<CardDto> getAllCards(Pageable pageable) {
+        return cardRepository.findAll(pageable)
+                .map(cardMapper::toDto);
+
+    }
+
     private User getUserById(Long userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
