@@ -23,6 +23,6 @@ public class UserDetailsServiceImpl implements UserDetailsService {
             throw new UsernameNotFoundException("User account is deactivated");
         }
 
-        return new UserDetailsImpl(user); // возвращаем кастомный UserDetails
+        return new UserDetailsImpl(user);
     }
 }

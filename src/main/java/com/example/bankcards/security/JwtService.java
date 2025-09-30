@@ -50,7 +50,6 @@ public class JwtService {
 
     public String generateToken(UserDetails userDetails) {
         Map<String, Object> claims = new HashMap<>();
-        // Сохраняем роль прямо в токене
         claims.put("role", userDetails.getAuthorities().stream()
                 .map(auth -> auth.getAuthority())
                 .findFirst().orElse("ROLE_USER"));

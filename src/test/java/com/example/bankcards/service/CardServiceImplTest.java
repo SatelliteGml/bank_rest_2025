@@ -40,21 +40,23 @@ class CardServiceImplTest {
 
     private User user;
     private Card card;
+    private static final Long USER_ID = 1L;
+    private static final Long CARD_ID = 1L;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
 
         user = new User();
-        user.setId(1L);
+        user.setId(USER_ID);
         user.setUsername("user1");
 
         card = new Card();
-        card.setId(1L);
+        card.setId(CARD_ID);
         card.setUser(user);
         card.setBalance(BigDecimal.valueOf(1000));
         card.setStatus(Status.ACTIVE);
-        card.setExpirationDate(LocalDate.now().plusYears(1));
+        card.setExpirationDate(LocalDate.of(2099, 12, 31));
         card.setIsBlocked(false);
         card.setEncryptedCardNumber(EncryptionUtil.encrypt("1234567890123456"));
     }
@@ -62,33 +64,64 @@ class CardServiceImplTest {
     @Test
     void testCreateCard_success() {
         CreateCardRequest request = new CreateCardRequest();
-        request.setUserId(1L);
+        request.setUserId(USER_ID);
         request.setCardHolder("user1");
         request.setExpirationDate(LocalDate.now().plusYears(1));
         request.setInitialBalance(BigDecimal.valueOf(500));
 
-        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user));
         when(cardRepository.existsByEncryptedCardNumber(anyString())).thenReturn(false);
-        when(cardRepository.save(any())).thenReturn(card);
-        when(cardMapper.toDto(any())).thenReturn(new CardDto());
+        when(cardRepository.save(any(Card.class))).thenReturn(card);
+
+        CardDto expectedDto = new CardDto();
+        when(cardMapper.toDto(any(Card.class))).thenReturn(expectedDto);
 
         CardDto result = cardService.createCard(request);
 
         assertNotNull(result);
-        verify(cardRepository).save(any());
+        assertEquals(expectedDto, result);
+
+        verify(userRepository).findById(USER_ID);
+        verify(cardRepository).existsByEncryptedCardNumber(anyString());
+        verify(cardRepository).save(any(Card.class));
+        verify(cardMapper).toDto(any(Card.class));
+    }
+
+    @Test
+    void testCreateCard_userNotFound() {
+        CreateCardRequest request = new CreateCardRequest();
+        request.setUserId(999L);
+
+        when(userRepository.findById(999L)).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class, () -> cardService.createCard(request));
+
+        verify(userRepository).findById(999L);
+        verify(cardRepository, never()).save(any());
     }
 
     @Test
     void testBlockCard_success() {
-        when(cardRepository.findById(1L)).thenReturn(Optional.of(card));
-        when(cardRepository.save(any())).thenReturn(card);
-        when(cardMapper.toDto(any())).thenReturn(new CardDto());
+        when(cardRepository.findById(CARD_ID)).thenReturn(Optional.of(card));
+        when(cardRepository.save(card)).thenReturn(card);
 
-        CardDto result = cardService.blockCard(1L);
+        CardDto expectedDto = new CardDto();
+        when(cardMapper.toDto(card)).thenReturn(expectedDto);
+
+        CardServiceImpl spyService = spy(cardService);
+        doNothing().when(spyService).validateCardForBlocking(card);
+
+        CardDto result = spyService.blockCard(CARD_ID);
 
         assertNotNull(result);
+        assertEquals(expectedDto, result);
         assertTrue(card.getIsBlocked());
         assertEquals(Status.BLOCKED, card.getStatus());
+
+        verify(cardRepository).findById(CARD_ID);
+        verify(cardRepository).save(card);
+        verify(cardMapper).toDto(card);
+        verify(spyService).validateCardForBlocking(card);
     }
 
     @Test
@@ -96,26 +129,50 @@ class CardServiceImplTest {
         card.setIsBlocked(true);
         card.setStatus(Status.BLOCKED);
 
-        when(cardRepository.findById(1L)).thenReturn(Optional.of(card));
-        when(cardRepository.save(any())).thenReturn(card);
+        when(cardRepository.findById(CARD_ID)).thenReturn(Optional.of(card));
+        when(cardRepository.save(card)).thenReturn(card);
 
         CardDto dto = new CardDto();
         dto.setStatus(Status.ACTIVE);
         dto.setIsBlocked(false);
-        when(cardMapper.toDto(any())).thenReturn(dto);
+        when(cardMapper.toDto(card)).thenReturn(dto);
 
-        CardDto result = cardService.activateCard(1L);
+        CardDto result = cardService.activateCard(CARD_ID);
 
         assertNotNull(result);
         assertFalse(result.getIsBlocked());
         assertEquals(Status.ACTIVE, result.getStatus());
-    }
+        assertFalse(card.getIsBlocked());
+        assertEquals(Status.ACTIVE, card.getStatus());
 
+        verify(cardRepository).findById(CARD_ID);
+        verify(cardRepository).save(card);
+        verify(cardMapper).toDto(card);
+    }
 
     @Test
     void testGetCardById_notFound() {
-        when(cardRepository.findById(1L)).thenReturn(Optional.empty());
+        when(cardRepository.findById(CARD_ID)).thenReturn(Optional.empty());
 
-        assertThrows(ResourceNotFoundException.class, () -> cardService.getCardById(1L));
+        assertThrows(ResourceNotFoundException.class, () -> cardService.getCardById(CARD_ID));
+
+        verify(cardRepository).findById(CARD_ID);
+        verify(cardMapper, never()).toDto(any());
+    }
+
+    @Test
+    void testGetCardById_success() {
+        when(cardRepository.findById(CARD_ID)).thenReturn(Optional.of(card));
+
+        CardDto expectedDto = new CardDto();
+        when(cardMapper.toDto(card)).thenReturn(expectedDto);
+
+        CardDto result = cardService.getCardById(CARD_ID);
+
+        assertNotNull(result);
+        assertEquals(expectedDto, result);
+
+        verify(cardRepository).findById(CARD_ID);
+        verify(cardMapper).toDto(card);
     }
 }

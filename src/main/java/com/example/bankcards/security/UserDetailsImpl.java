@@ -20,7 +20,7 @@ public class UserDetailsImpl implements UserDetails {
     public UserDetailsImpl(User user) {
         this.id = user.getId();
         this.username = user.getUsername();
-        this.password = user.getPassword(); // берем зашифрованный пароль из БД
+        this.password = user.getPassword();
         this.authorities = Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()));
     }
 

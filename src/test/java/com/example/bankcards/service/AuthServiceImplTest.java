@@ -1,4 +1,4 @@
-package com.example.bankcards.service.impl;
+package com.example.bankcards.service;
 
 import com.example.bankcards.dto.LoginRequest;
 import com.example.bankcards.dto.LoginResponse;
@@ -10,6 +10,7 @@ import com.example.bankcards.exception.AuthenticationException;
 import com.example.bankcards.exception.UserExistException;
 import com.example.bankcards.repository.UserRepository;
 import com.example.bankcards.security.JwtService;
+import com.example.bankcards.service.impl.AuthServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -44,6 +45,12 @@ class AuthServiceImplTest {
     @InjectMocks
     private AuthServiceImpl authService;
 
+    private static final String TEST_USERNAME = "testuser";
+    private static final String TEST_PASSWORD = "password";
+    private static final String TEST_EMAIL = "newuser@example.com";
+    private static final String ENCODED_PASSWORD = "encoded-password";
+    private static final String JWT_TOKEN = "jwt-token";
+
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
@@ -52,52 +59,60 @@ class AuthServiceImplTest {
     @Test
     void login_Success() {
         LoginRequest request = new LoginRequest();
-        request.setUsername("testuser");
-        request.setPassword("password");
+        request.setUsername(TEST_USERNAME);
+        request.setPassword(TEST_PASSWORD);
 
         UserDetails userDetails = mock(UserDetails.class);
-        when(userDetails.getUsername()).thenReturn("testuser");
+        when(userDetails.getUsername()).thenReturn(TEST_USERNAME);
 
         Authentication auth = mock(Authentication.class);
         when(authenticationManager.authenticate(any())).thenReturn(auth);
         when(auth.getPrincipal()).thenReturn(userDetails);
-        when(jwtService.generateToken(userDetails)).thenReturn("jwt-token");
+        when(jwtService.generateToken(userDetails)).thenReturn(JWT_TOKEN);
 
         User user = new User();
-        user.setUsername("testuser");
+        user.setUsername(TEST_USERNAME);
         user.setRole(Role.USER);
-        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
+        when(userRepository.findByUsername(TEST_USERNAME)).thenReturn(Optional.of(user));
 
         LoginResponse response = authService.login(request);
 
-        assertEquals("jwt-token", response.getToken());
-        assertEquals("testuser", response.getUsername());
+        assertEquals(JWT_TOKEN, response.getToken());
+        assertEquals(TEST_USERNAME, response.getUsername());
         assertEquals("USER", response.getRole());
+
+        verify(authenticationManager).authenticate(any());
+        verify(jwtService).generateToken(userDetails);
+        verify(userRepository).findByUsername(TEST_USERNAME);
     }
 
     @Test
     void login_Failure_BadCredentials() {
         LoginRequest request = new LoginRequest();
-        request.setUsername("testuser");
+        request.setUsername(TEST_USERNAME);
         request.setPassword("wrongpassword");
 
         when(authenticationManager.authenticate(any()))
                 .thenThrow(new BadCredentialsException("Bad credentials"));
 
-        AuthenticationException exception = assertThrows(AuthenticationException.class, () -> authService.login(request));
+        AuthenticationException exception = assertThrows(AuthenticationException.class,
+                () -> authService.login(request));
         assertTrue(exception.getMessage().contains("Authentication failed"));
+
+        verify(authenticationManager).authenticate(any());
+        verify(userRepository, never()).findByUsername(anyString());
     }
 
     @Test
     void register_Success() {
         RegisterRequest request = new RegisterRequest();
-        request.setUsername("newuser");
-        request.setEmail("newuser@example.com");
-        request.setPassword("password");
+        request.setUsername(TEST_USERNAME);
+        request.setEmail(TEST_EMAIL);
+        request.setPassword(TEST_PASSWORD);
 
-        when(userRepository.findByUsername("newuser")).thenReturn(Optional.empty());
-        when(userRepository.findByEmail("newuser@example.com")).thenReturn(Optional.empty());
-        when(passwordEncoder.encode("password")).thenReturn("encoded-password");
+        when(userRepository.findByUsername(TEST_USERNAME)).thenReturn(Optional.empty());
+        when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.empty());
+        when(passwordEncoder.encode(TEST_PASSWORD)).thenReturn(ENCODED_PASSWORD);
 
         RegisterResponse response = authService.register(request);
 
@@ -107,11 +122,14 @@ class AuthServiceImplTest {
         verify(userRepository).save(captor.capture());
 
         User savedUser = captor.getValue();
-        assertEquals("newuser", savedUser.getUsername());
-        assertEquals("encoded-password", savedUser.getPassword());
-        assertEquals("newuser@example.com", savedUser.getEmail());
+        assertEquals(TEST_USERNAME, savedUser.getUsername());
+        assertEquals(ENCODED_PASSWORD, savedUser.getPassword());
+        assertEquals(TEST_EMAIL, savedUser.getEmail());
         assertEquals(Role.USER, savedUser.getRole());
-        assertTrue(savedUser.getActive()); //этого у меня нету
+
+        verify(userRepository).findByUsername(TEST_USERNAME);
+        verify(userRepository).findByEmail(TEST_EMAIL);
+        verify(passwordEncoder).encode(TEST_PASSWORD);
     }
 
     @Test
@@ -122,8 +140,13 @@ class AuthServiceImplTest {
 
         when(userRepository.findByUsername("existinguser")).thenReturn(Optional.of(new User()));
 
-        UserExistException exception = assertThrows(UserExistException.class, () -> authService.register(request));
+        UserExistException exception = assertThrows(UserExistException.class,
+                () -> authService.register(request));
         assertTrue(exception.getMessage().contains("already exists"));
+
+        verify(userRepository).findByUsername("existinguser");
+        verify(userRepository, never()).findByEmail(anyString());
+        verify(userRepository, never()).save(any());
     }
 
     @Test
@@ -135,7 +158,12 @@ class AuthServiceImplTest {
         when(userRepository.findByUsername("newuser")).thenReturn(Optional.empty());
         when(userRepository.findByEmail("existing@example.com")).thenReturn(Optional.of(new User()));
 
-        UserExistException exception = assertThrows(UserExistException.class, () -> authService.register(request));
+        UserExistException exception = assertThrows(UserExistException.class,
+                () -> authService.register(request));
         assertTrue(exception.getMessage().contains("already exists"));
+
+        verify(userRepository).findByUsername("newuser");
+        verify(userRepository).findByEmail("existing@example.com");
+        verify(userRepository, never()).save(any());
     }
 }

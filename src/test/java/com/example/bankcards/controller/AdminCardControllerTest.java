@@ -68,7 +68,6 @@ class AdminCardControllerTest {
     void testGetAllCards() throws Exception {
         CardDto dto = new CardDto();
 
-        // Используем PageImpl с контентом и PageRequest, чтобы Jackson смог сериализовать
         Pageable pageable = PageRequest.of(0, 10);
         PageImpl<CardDto> page = new PageImpl<>(List.of(dto), pageable, 1);
 

@@ -14,9 +14,8 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 class BalanceServiceImplTest {
 
@@ -27,38 +26,58 @@ class BalanceServiceImplTest {
     private BalanceServiceImpl balanceService;
 
     private Card card;
+    private static final Long CARD_ID = 1L;
+    private static final Long USER_ID = 1L;
+    private static final BigDecimal CARD_BALANCE = BigDecimal.valueOf(1000);
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
 
         card = new Card();
-        card.setId(1L);
-        card.setBalance(BigDecimal.valueOf(1000));
+        card.setId(CARD_ID);
+        card.setBalance(CARD_BALANCE);
     }
 
     @Test
     void testGetCardBalance_success() {
-        when(cardRepository.findById(1L)).thenReturn(Optional.of(card));
+        when(cardRepository.findById(CARD_ID)).thenReturn(Optional.of(card));
 
-        BigDecimal balance = balanceService.getCardBalance(1L);
+        BigDecimal balance = balanceService.getCardBalance(CARD_ID);
 
-        assertEquals(BigDecimal.valueOf(1000), balance);
+        assertEquals(CARD_BALANCE, balance);
+        verify(cardRepository).findById(CARD_ID);
     }
 
     @Test
     void testGetCardBalance_notFound() {
-        when(cardRepository.findById(1L)).thenReturn(Optional.empty());
+        when(cardRepository.findById(CARD_ID)).thenReturn(Optional.empty());
 
-        assertThrows(CardNotFoundException.class, () -> balanceService.getCardBalance(1L));
+        assertThrows(CardNotFoundException.class, () -> balanceService.getCardBalance(CARD_ID));
+        verify(cardRepository).findById(CARD_ID);
     }
 
     @Test
     void testGetUserTotalBalance_success() {
-        when(cardRepository.findByUserId(1L)).thenReturn(List.of(card, card));
+        Card card2 = new Card();
+        card2.setId(2L);
+        card2.setBalance(BigDecimal.valueOf(1500));
 
-        BigDecimal total = balanceService.getUserTotalBalance(1L);
+        when(cardRepository.findByUserId(USER_ID)).thenReturn(List.of(card, card2));
 
-        assertEquals(BigDecimal.valueOf(2000), total);
+        BigDecimal total = balanceService.getUserTotalBalance(USER_ID);
+
+        assertEquals(BigDecimal.valueOf(2500), total);
+        verify(cardRepository).findByUserId(USER_ID);
+    }
+
+    @Test
+    void testGetUserTotalBalance_emptyList() {
+        when(cardRepository.findByUserId(USER_ID)).thenReturn(List.of());
+
+        BigDecimal total = balanceService.getUserTotalBalance(USER_ID);
+
+        assertEquals(BigDecimal.ZERO, total);
+        verify(cardRepository).findByUserId(USER_ID);
     }
 }
