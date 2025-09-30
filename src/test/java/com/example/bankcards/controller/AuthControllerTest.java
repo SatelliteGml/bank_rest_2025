@@ -57,7 +57,7 @@ class AuthControllerTest {
     void testRegister() throws Exception {
         RegisterRequest request = new RegisterRequest();
         request.setUsername("testData");
-        request.setPassword("password123"); // >= 8 символов
+        request.setPassword("password123");
         request.setEmail("testData@test.com");
 
         RegisterResponse response = new RegisterResponse("Registration successful");

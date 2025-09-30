@@ -4,7 +4,7 @@ import java.util.Random;
 
 public class CardNumberGenerator {
 
-    private static final String BIN = "4"; // Visa cards start with 4
+    private static final String BIN = "4";
     private static final int CARD_LENGTH = 16;
     private static final Random random = new Random();
 

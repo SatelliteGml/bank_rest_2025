@@ -35,22 +35,25 @@ class TransferServiceImplTest {
     private Card fromCard;
     private Card toCard;
     private User user;
+    private static final Long USER_ID = 1L;
+    private static final Long FROM_CARD_ID = 1L;
+    private static final Long TO_CARD_ID = 2L;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
 
         user = new User();
-        user.setId(1L);
+        user.setId(USER_ID);
 
         fromCard = new Card();
-        fromCard.setId(1L);
+        fromCard.setId(FROM_CARD_ID);
         fromCard.setUser(user);
         fromCard.setBalance(BigDecimal.valueOf(1000));
         fromCard.setStatus(Status.ACTIVE);
 
         toCard = new Card();
-        toCard.setId(2L);
+        toCard.setId(TO_CARD_ID);
         toCard.setUser(user);
         toCard.setBalance(BigDecimal.valueOf(500));
         toCard.setStatus(Status.ACTIVE);
@@ -59,35 +62,57 @@ class TransferServiceImplTest {
     @Test
     void testTransferBetweenUserCards_success() {
         TransferRequest request = new TransferRequest();
-        request.setFromCardId(1L);
-        request.setToCardId(2L);
+        request.setFromCardId(FROM_CARD_ID);
+        request.setToCardId(TO_CARD_ID);
         request.setAmount(BigDecimal.valueOf(200));
 
-        when(cardRepository.findById(1L)).thenReturn(Optional.of(fromCard));
-        when(cardRepository.findById(2L)).thenReturn(Optional.of(toCard));
+        when(cardRepository.findById(FROM_CARD_ID)).thenReturn(Optional.of(fromCard));
+        when(cardRepository.findById(TO_CARD_ID)).thenReturn(Optional.of(toCard));
 
-        TransferResult result = transferService.transferBetweenUserCards(1L, request);
+        TransferResult result = transferService.transferBetweenUserCards(USER_ID, request);
 
         assertEquals("SUCCESS", result.getStatus());
         assertEquals(BigDecimal.valueOf(800), fromCard.getBalance());
         assertEquals(BigDecimal.valueOf(700), toCard.getBalance());
 
-        verify(cardRepository, times(1)).save(fromCard);
-        verify(cardRepository, times(1)).save(toCard);
-        verify(transactionRepository, times(1)).save(any());
+        verify(cardRepository).findById(FROM_CARD_ID);
+        verify(cardRepository).findById(TO_CARD_ID);
+        verify(cardRepository).save(fromCard);
+        verify(cardRepository).save(toCard);
+        verify(transactionRepository).save(any());
     }
 
     @Test
     void testTransferBetweenUserCards_insufficientFunds() {
         TransferRequest request = new TransferRequest();
-        request.setFromCardId(1L);
-        request.setToCardId(2L);
+        request.setFromCardId(FROM_CARD_ID);
+        request.setToCardId(TO_CARD_ID);
         request.setAmount(BigDecimal.valueOf(2000));
 
-        when(cardRepository.findById(1L)).thenReturn(Optional.of(fromCard));
-        when(cardRepository.findById(2L)).thenReturn(Optional.of(toCard));
+        when(cardRepository.findById(FROM_CARD_ID)).thenReturn(Optional.of(fromCard));
+        when(cardRepository.findById(TO_CARD_ID)).thenReturn(Optional.of(toCard));
 
         assertThrows(InsufficientFundsException.class, () ->
-                transferService.transferBetweenUserCards(1L, request));
+                transferService.transferBetweenUserCards(USER_ID, request));
+
+        verify(cardRepository, never()).save(any());
+        verify(transactionRepository, never()).save(any());
+    }
+
+    @Test
+    void testTransferBetweenUserCards_fromCardNotFound() {
+        TransferRequest request = new TransferRequest();
+        request.setFromCardId(999L);
+        request.setToCardId(TO_CARD_ID);
+        request.setAmount(BigDecimal.valueOf(100));
+
+        when(cardRepository.findById(999L)).thenReturn(Optional.empty());
+
+
+        assertThrows(RuntimeException.class, () ->
+                transferService.transferBetweenUserCards(USER_ID, request));
+
+        verify(cardRepository, never()).save(any());
+        verify(transactionRepository, never()).save(any());
     }
 }

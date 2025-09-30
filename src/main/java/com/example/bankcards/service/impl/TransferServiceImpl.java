@@ -59,7 +59,6 @@ public class TransferServiceImpl implements TransferService {
         performTransferChecks(fromCard, toCard, request.getAmount());
         performTransfer(fromCard, toCard, request.getAmount(), request.getDescription());
 
-        // Возвращаем информацию о переводе
         return new TransferResult(
                 "SUCCESS",
                 fromCard.getId(),

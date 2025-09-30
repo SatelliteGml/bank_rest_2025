@@ -166,7 +166,7 @@ public class CardServiceImpl implements CardService {
     }
 
 
-    private void validateCardForBlocking(Card card) {
+    public void validateCardForBlocking(Card card) {
         if (isCardNotExpired(card)) {
             throw new IllegalStateException("Cannot block expired card with id: " + card.getId());
         }
