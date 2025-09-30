@@ -41,11 +41,9 @@ jwt:
 
 springdoc:
   api-docs:
-    enabled: true
-    path: /api-docs
+    path: /v3/api-docs
   swagger-ui:
-    enabled: true
-    path: /swagger-ui.html
+    path: /swagger-ui
 
 logging:
   config: classpath:logback-spring.xml

@@ -1,81 +1,72 @@
 package com.example.bankcards.security;
 
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.JwtException;
-
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
-import java.nio.charset.StandardCharsets;
-import java.security.Key;
+import javax.crypto.SecretKey;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.Function;
 
 @Service
 public class JwtService {
 
-    // Берём секретный ключ из application.yml / .env
     @Value("${jwt.secret}")
     private String secret;
 
-    // Время жизни токена в миллисекундах
     @Value("${jwt.expiration}")
-    private long expiration;
+    private Long expiration;
 
-    // Генерация ключа из строки (32+ байта)
-    private Key getSigningKey() {
-        return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+    private SecretKey getSigningKey() {
+        return Keys.hmacShaKeyFor(secret.getBytes());
     }
 
-    /**
-     * Генерация JWT-токена для пользователя
-     * @param username имя пользователя
-     * @return JWT-токен
-     */
-    public String generateToken(String username) {
-        Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + expiration);
+    public String extractUsername(String token) {
+        return extractClaim(token, Claims::getSubject);
+    }
 
+    public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
+        final Claims claims = extractAllClaims(token);
+        return claimsResolver.apply(claims);
+    }
+
+    public Claims extractAllClaims(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(getSigningKey())
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+    }
+
+    private Boolean isTokenExpired(String token) {
+        return extractClaim(token, Claims::getExpiration).before(new Date());
+    }
+
+    public String generateToken(UserDetails userDetails) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("role", userDetails.getAuthorities().stream()
+                .map(auth -> auth.getAuthority())
+                .findFirst().orElse("ROLE_USER"));
+        return createToken(claims, userDetails.getUsername());
+    }
+
+    private String createToken(Map<String, Object> claims, String subject) {
         return Jwts.builder()
-                .setSubject(username)
-                .setIssuedAt(now)
-                .setExpiration(expiryDate)
+                .setClaims(claims)
+                .setSubject(subject)
+                .setIssuedAt(new Date(System.currentTimeMillis()))
+                .setExpiration(new Date(System.currentTimeMillis() + expiration))
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
 
-    /**
-     * Получение username из JWT
-     */
-    public String getUsernameFromToken(String token) {
-        try {
-            Claims claims = Jwts.parserBuilder()
-                    .setSigningKey(getSigningKey())
-                    .build()
-                    .parseClaimsJws(token)
-                    .getBody();
-
-            return claims.getSubject();
-        } catch (JwtException e) {
-            // Токен недействителен
-            return null;
-        }
-    }
-
-    /**
-     * Проверка валидности токена
-     */
-    public boolean validateToken(String token) {
-        try {
-            Jwts.parserBuilder()
-                    .setSigningKey(getSigningKey())
-                    .build()
-                    .parseClaimsJws(token);
-            return true;
-        } catch (JwtException e) {
-            return false;
-        }
+    public Boolean validateToken(String token) {
+        return !isTokenExpired(token);
     }
 }

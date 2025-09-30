@@ -1,0 +1,14 @@
+databaseChangeLog:
+  - changeSet:
+      id: 7
+      author: admin
+      changes:
+        - addColumn:
+            tableName: cards
+            columns:
+              - column:
+                  name: is_blocked
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
