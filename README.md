@@ -62,7 +62,7 @@ Java Spring Boot + PostgreSQL + Docker
 ### Клонирование репозитория
 ```bash
 git clone https://github.com/SatelliteGml/bank_rest_2025.git
-cd cd bank_rest_2025
+cd bank_rest_2025
 ```
 
 ### Настройка окружения
